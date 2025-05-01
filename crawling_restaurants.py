@@ -101,15 +101,24 @@ def extract_restaurant_info(driver, store_elements):
                 address = address_elements.find_element(By.CSS_SELECTOR, "span.LDgIH").text
             except Exception as e:
                 print(store_name + " 주소 에러 발생 : " + str(e)) 
+            
+            # 가게 사진
+            try:
+                images = []
+                image_elements = WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".CB8aP .uDR4i")))
+                img_elements = image_elements.find_elements(By.TAG_NAME, "img")
+                images = [img.get_attribute("src") for img in img_elements if img.get_attribute("src")]
+            except Exception as e:
+                 print(store_name + " 가게 이미지 에러 발생 : " + str(e)) 
 
             # 영업 시간
             try:
-                more_button = WebDriverWait(driver, 10).until(
+                more_button = WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, ".gKP9i.RMgN0"))  # '영업시간 더보기' 버튼의 클래스
                 )
                 driver.execute_script("arguments[0].click();", more_button)
 
-                opening_hours_elements = WebDriverWait(driver, 10).until(
+                opening_hours_elements = WebDriverWait(driver, 5).until(
                     EC.presence_of_all_elements_located((
                         By.XPATH,
                         "//div[@class='w9QyJ' or @class='w9QyJ undefined']"
@@ -135,7 +144,8 @@ def extract_restaurant_info(driver, store_elements):
             
             restaurant_info.append({
                 "name": store_name,
-                "address": address,
+                "address" : address,
+                "images" : images,
                 "opening_hours": opening_hours
             })
 
