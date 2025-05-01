@@ -78,8 +78,8 @@ def extract_restaurant_info(driver, store_elements):
     for idx, store in enumerate(store_elements, start=0):
         try:
             # 식당 이름 찾기
-            name_element = store.find_element(By.CSS_SELECTOR, ".TYaxT")
-            store_name = name_element.text.strip()
+            store_name = store.find_element(By.CSS_SELECTOR, ".TYaxT").text.strip()
+            category = store.find_element(By.CSS_SELECTOR, ".KCMnt").text.strip()
 
             if not store_name:
                 continue
@@ -92,7 +92,9 @@ def extract_restaurant_info(driver, store_elements):
             driver.switch_to.default_content()
             WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, '//*[@id="entryIframe"]')))
             driver.switch_to.frame(driver.find_element(By.XPATH, '//*[@id="entryIframe"]'))
-
+            
+            # 고유 ID 찾기
+            
             # 주소 찾기
             try:
                 address_elements = WebDriverWait(driver, 5).until(
@@ -143,7 +145,8 @@ def extract_restaurant_info(driver, store_elements):
                 print(store_name + " 영업시간 에러 발생 : " + str(e))
             
             restaurant_info.append({
-                "name": store_name,
+                "name" : store_name,
+                "category" : category,
                 "address" : address,
                 "images" : images,
                 "opening_hours": opening_hours
