@@ -87,7 +87,7 @@ def extract_restaurant_info(driver, store_elements):
                 continue
             if any(keyword in category for keyword in except_keywords):
                 continue
-            
+
             # 가게 클릭
             driver.execute_script("arguments[0].click();", store)
             time.sleep(1)
@@ -151,13 +151,64 @@ def extract_restaurant_info(driver, store_elements):
             except Exception as e:
                 print(store_name + " 영업시간 에러 발생 : " + str(e))
             
+            # 메뉴 가져오기
+            a_elements = driver.find_elements(By.CSS_SELECTOR, ".flicking-camera a")
+            menu_link = next((a for a in a_elements if "menu" in a.get_attribute("href")), None)
+            driver.execute_script("arguments[0].click();", menu_link)
+
+            driver.switch_to.default_content()
+            WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.ID, "entryIframe")))
+            driver.switch_to.frame(driver.find_element(By.ID, "entryIframe"))
+
+            # 메뉴 항목 로드 기다리기
+            menu_elements = WebDriverWait(driver, 5).until(
+                EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".place_section_content .E2jtL"))
+            )
+            
+            menu = []
+            for m in menu_elements:
+                try:
+                    is_main = bool(m.find_elements(By.CSS_SELECTOR, "span.place_blind"))
+                except:
+                    is_main = False
+
+                try:
+                    name = m.find_element(By.CSS_SELECTOR, "span.lPzHi").text.strip()
+                except:
+                    name = None
+
+                try:
+                    introduce = m.find_element(By.CSS_SELECTOR, ".kPogF").text.strip()
+                except:
+                    introduce = None
+
+                try:
+                    price = m.find_element(By.CSS_SELECTOR, ".GXS1X em").text.strip()
+                except:
+                    price = None
+
+                try:
+                    img_el = m.find_element(By.CSS_SELECTOR, ".place_thumb img")
+                    img_src = img_el.get_attribute("src").strip()
+                except:
+                    img_src = None
+
+                menu.append({
+                    "isMain": is_main,
+                    "name": name,
+                    "introduce": introduce,
+                    "price": price,
+                    "img": img_src
+                })
+
             restaurant_info.append({
                 "id" : place_id,
                 "name" : store_name,
                 "category" : category,
                 "address" : address,
                 "images" : images,
-                "opening_hours": opening_hours
+                "openingHours": opening_hours,
+                "menu" : menu
             })
 
             print("가게명 : ", store_name, " address : ", address)
