@@ -1,4 +1,5 @@
 import json
+import re
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
@@ -74,16 +75,19 @@ def scroll_and_collect_restaurants(driver, scrollable_div, scroll_pause_time=2.5
 
 def extract_restaurant_info(driver, store_elements):
     restaurant_info = []
+    except_keywords = ["카페", "디저트", "베이커리"]
 
     for idx, store in enumerate(store_elements, start=0):
         try:
             # 식당 이름 찾기
             store_name = store.find_element(By.CSS_SELECTOR, ".TYaxT").text.strip()
             category = store.find_element(By.CSS_SELECTOR, ".KCMnt").text.strip()
-
+            
             if not store_name:
                 continue
-
+            if any(keyword in category for keyword in except_keywords):
+                continue
+            
             # 가게 클릭
             driver.execute_script("arguments[0].click();", store)
             time.sleep(1)
@@ -91,9 +95,12 @@ def extract_restaurant_info(driver, store_elements):
             # iframe으로 이동
             driver.switch_to.default_content()
             WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.XPATH, '//*[@id="entryIframe"]')))
-            driver.switch_to.frame(driver.find_element(By.XPATH, '//*[@id="entryIframe"]'))
-            
-            # 고유 ID 찾기
+            iframe = driver.find_element(By.XPATH, '//*[@id="entryIframe"]')
+            iframe_src = iframe.get_attribute("src")
+            driver.switch_to.frame(iframe)
+
+            # 고유 ID 추출
+            place_id = re.search(r"/place/(\d+)", iframe_src).group(1)
             
             # 주소 찾기
             try:
@@ -145,6 +152,7 @@ def extract_restaurant_info(driver, store_elements):
                 print(store_name + " 영업시간 에러 발생 : " + str(e))
             
             restaurant_info.append({
+                "id" : place_id,
                 "name" : store_name,
                 "category" : category,
                 "address" : address,
