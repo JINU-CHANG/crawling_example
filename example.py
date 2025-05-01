@@ -94,39 +94,45 @@ def extract_restaurant_info(driver, store_elements):
             driver.switch_to.frame(driver.find_element(By.XPATH, '//*[@id="entryIframe"]'))
 
             # 주소 찾기
-            address_elements = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, ".place_section_content .vV_z_"))
-            )
-            address = address_elements.find_element(By.CSS_SELECTOR, "span.LDgIH").text
+            try:
+                address_elements = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".place_section_content .vV_z_"))
+                )
+                address = address_elements.find_element(By.CSS_SELECTOR, "span.LDgIH").text
+            except Exception as e:
+                print(store_name + " 주소 에러 발생 : " + str(e)) 
 
             # 영업 시간
-            more_button = WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.CSS_SELECTOR, ".w9QyJ.vI8SM.DzD3b"))  # '영업시간 더보기' 버튼의 클래스
-            )
-            driver.execute_script("arguments[0].click();",more_button)
+            try:
+                more_button = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, ".gKP9i.RMgN0"))  # '영업시간 더보기' 버튼의 클래스
+                )
+                driver.execute_script("arguments[0].click();", more_button)
 
-            opening_hours_elements = WebDriverWait(driver, 5).until(
-                EC.presence_of_all_elements_located((
-                    By.XPATH,
-                    "//div[@class='w9QyJ' or @class='w9QyJ undefined']"
-                ))
-            )
-            
-            opening_hours = []
-            for opening in opening_hours_elements:
-                day = None
-                hours = None
-                try:
-                    day = opening.find_element(By.CSS_SELECTOR, "span.i8cJw").text.strip()
-                except Exception as e:
+                opening_hours_elements = WebDriverWait(driver, 10).until(
+                    EC.presence_of_all_elements_located((
+                        By.XPATH,
+                        "//div[@class='w9QyJ' or @class='w9QyJ undefined']"
+                    ))
+                )
+
+                opening_hours = []
+                for opening in opening_hours_elements:
                     day = None
-                try:
-                    hours = opening.find_element(By.CSS_SELECTOR, ".H3ua4").text.strip()
-                except Exception as e:
                     hours = None
-                if day and hours:
-                    opening_hours.append({"day": day, "hours": hours})
-
+                    try:
+                        day = opening.find_element(By.CSS_SELECTOR, "span.i8cJw").text.strip()
+                    except Exception as e:
+                        day = None
+                    try:
+                        hours = opening.find_element(By.CSS_SELECTOR, ".H3ua4").text.strip()
+                    except Exception as e:
+                        hours = None
+                    if day and hours:
+                        opening_hours.append({"day": day, "hours": hours})
+            except Exception as e:
+                print(store_name + " 영업시간 에러 발생 : " + str(e))
+            
             restaurant_info.append({
                 "name": store_name,
                 "address": address,
@@ -140,7 +146,6 @@ def extract_restaurant_info(driver, store_elements):
             WebDriverWait(driver, 5).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "searchIframe")))
 
         except Exception as e:
-            print(store_name + " 에러 발생 : " + str(e))
             driver.switch_to.default_content()
             WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "searchIframe")))
             continue
@@ -148,14 +153,14 @@ def extract_restaurant_info(driver, store_elements):
     return restaurant_info
     
 # 식당 이름 모으기
-restaurants = scroll_and_collect_restaurants(driver, scrollable_div, scroll_pause_time=1.5, max_scroll=30)
+restaurants = scroll_and_collect_restaurants(driver, scrollable_div, scroll_pause_time=1.5, max_scroll=1)
 restaurants_info = extract_restaurant_info(driver, restaurants)
 
 end = datetime.now()
 
 print("[크롤링 결과]")
 print(f"\n 최종 수집 식당 수: {len(restaurants)}개")
-##print(json.dumps(restaurants_info, ensure_ascii=False, indent=2))
+print(json.dumps(restaurants_info, ensure_ascii=False, indent=2))
 print("소요 시간 : ", (end - now).total_seconds())
 
 driver.quit()
