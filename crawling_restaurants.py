@@ -1,33 +1,19 @@
-import json
 import re
-from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from datetime import datetime
 import time
-
-now = datetime.now()
-
-options = Options()
-driver = webdriver.Chrome(options=options)
-
-driver.get("https://map.naver.com/p/search/충무로%20음식점?c=15.00,0,0,0,dh")
-time.sleep(1)
-
-WebDriverWait(driver, 10).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "searchIframe")))
 
 def crawling_restaurants(driver):
     print("[스크롤 시작]")
 
     scroll_container = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".place_on_pcmap #app-root .Ryr1F")))
-    scroll(scroll_container, 300)
+    scroll(driver, scroll_container, 300)
 
     restaurant_elements = driver.find_elements(By.CSS_SELECTOR,".place_on_pcmap #app-root .XUrfU .place_bluelink.N_KDL")
     return restaurant_elements
 
-def scroll(scroll_container, px):
+def scroll(driver, scroll_container, px):
     last_height = driver.execute_script("return arguments[0].scrollHeight", scroll_container)
     while True:
         driver.execute_script("arguments[0].scrollTop += arguments[1]", scroll_container, px)
@@ -62,10 +48,10 @@ def crawling_restaurant_info(driver, restaurant_elements):
             driver.switch_to.frame(iframe)
 
             place_id = re.search(r"/place/(\d+)", iframe_src).group(1)
-            address = crawling_address()
-            images = crawling_img()
-            opening_hours = crawling_openingHours()
-            menu = crawling_menu()
+            address = crawling_address(driver)
+            images = crawling_img(driver)
+            opening_hours = crawling_openingHours(driver)
+            menu = crawling_menu(driver)
 
             restaurant_info.append({
                 "id" : place_id,
@@ -90,7 +76,7 @@ def crawling_restaurant_info(driver, restaurant_elements):
 
     return restaurant_info
 
-def crawling_address():
+def crawling_address(driver):
     try:
         address_elements = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".place_section_content .vV_z_")))
         address = address_elements.find_element(By.CSS_SELECTOR, "span.LDgIH").text.strip()
@@ -98,7 +84,7 @@ def crawling_address():
         print("주소 에러 발생 : " + str(e)) 
     return address
 
-def crawling_img():
+def crawling_img(driver):
     try:
         images = []
         image_elements = WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.CSS_SELECTOR, ".CB8aP .uDR4i")))
@@ -108,7 +94,7 @@ def crawling_img():
         print("가게 이미지 에러 발생 : " + str(e))
     return images
 
-def crawling_openingHours():
+def crawling_openingHours(driver):
     try:
         button_element = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".gKP9i.RMgN0")))
         driver.execute_script("arguments[0].click();", button_element)
@@ -166,7 +152,7 @@ def parse_hours(hours):
 
     return result
 
-def crawling_menu():
+def crawling_menu(driver):
     a_elements = driver.find_elements(By.CSS_SELECTOR, ".flicking-camera a")
     menu_link = next((a for a in a_elements if "menu" in a.get_attribute("href")), None)
     driver.execute_script("arguments[0].click();", menu_link)
@@ -213,15 +199,3 @@ def crawling_menu():
             "imgUrl": img_src
         })
     return menu
-
-restaurants = crawling_restaurants(driver)
-restaurants_info = crawling_restaurant_info(driver, restaurants)
-
-end = datetime.now()
-
-print("[크롤링 결과]")
-print(f"\n 최종 수집 식당 수: {len(restaurants)}개")
-print(json.dumps(restaurants_info, ensure_ascii=False, indent=2))
-print("소요 시간 : ", (end - now).total_seconds())
-
-driver.quit()
