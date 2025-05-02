@@ -13,65 +13,32 @@ now = datetime.now()
 options = Options()
 driver = webdriver.Chrome(options=options)
 
-address = ["https://map.naver.com/p/search/%EC%9D%8C%EC%8B%9D%EC%A0%90?c=16.82,0,0,0,dh", 
-        "https://map.naver.com/p/search/충무로%20음식점?c=15.00,0,0,0,dh"]
-
-# 네이버 맛집 검색
 driver.get("https://map.naver.com/p/search/충무로%20음식점?c=15.00,0,0,0,dh")
 time.sleep(1)
 
-# iframe 안으로 진입
 WebDriverWait(driver, 5).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "searchIframe")))
 
-# 스크롤 가능한 div 가져오기
-scrollable_div = scrollable_div = WebDriverWait(driver, 5).until(
-    EC.presence_of_element_located((By.CSS_SELECTOR, ".Ryr1F"))
-)
-
-def scroll_and_collect_restaurants(driver, scrollable_div, scroll_pause_time=2.5, max_scroll=30):
+def crawling_restaurants(driver):
     restaurants = []
-    scroll_count = 0
-    before_count = 0
-    after_count = 0
 
-    while scroll_count < max_scroll:
+    print("[스크롤 시작]")
 
-        print(f"\n[스크롤 {scroll_count + 1}회차 시작]")
+    scroll_container = WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".place_on_pcmap #app-root .Ryr1F")))
+    scroll(scroll_container)
 
-        # 가게 리스트 수집
-        store_elements = driver.find_elements(By.CSS_SELECTOR,
-            ".place_on_pcmap #app-root .XUrfU .place_bluelink.N_KDL"
-        )
-        before_count = len(store_elements)
-
-        # 천천히 스크롤
-        total_height = driver.execute_script("return arguments[0].scrollHeight", scrollable_div)
-        current_scroll = driver.execute_script("return arguments[0].scrollTop", scrollable_div)
-        last_scroll = -1
-        while current_scroll < total_height:
-            driver.execute_script("arguments[0].scrollTop = arguments[0].scrollTop + 300", scrollable_div)
-            time.sleep(0.5)
-            current_scroll = driver.execute_script("return arguments[0].scrollTop", scrollable_div)
-            if last_scroll == current_scroll:
-                break
-            last_scroll = current_scroll
-
-        time.sleep(scroll_pause_time)
-
-        # 스크롤 후 가게 리스트 다시 수집
-        elements_after = driver.find_elements(
-            By.CSS_SELECTOR,
-            ".place_on_pcmap #app-root .XUrfU .place_bluelink.N_KDL"
-        )
-        after_count = len(elements_after)
-
-        if after_count == before_count:
-            print("\n[스크롤 종료]")
-            break
-
-        scroll_count += 1
-    restaurants.extend(elements_after)
+    restaurant_elements = driver.find_elements(By.CSS_SELECTOR,".place_on_pcmap #app-root .XUrfU .place_bluelink.N_KDL")
+    restaurants.extend(restaurant_elements)
     return restaurants
+
+def scroll(scroll_container):
+    last_height = driver.execute_script("return arguments[0].scrollHeight", scroll_container)
+    while True:
+        driver.execute_script("arguments[0].scrollTop += 300", scroll_container)
+        time.sleep(0.5)
+        current_height = driver.execute_script("return arguments[0].scrollTop", scroll_container)
+        if current_height == last_height:
+            break
+        last_height = current_height
 
 def extract_restaurant_info(driver, store_elements):
     restaurant_info = []
@@ -137,17 +104,17 @@ def extract_restaurant_info(driver, store_elements):
                 opening_hours = []
                 for opening in opening_hours_elements:
                     day = None
-                    hours = None
+                    hours = []
                     try:
                         day = opening.find_element(By.CSS_SELECTOR, "span.i8cJw").text.strip()
                     except Exception as e:
                         day = None
                     try:
-                        hours = opening.find_element(By.CSS_SELECTOR, ".H3ua4").text.strip()
+                        hours_list = opening.find_element(By.CSS_SELECTOR, ".H3ua4").text.strip()
                     except Exception as e:
                         hours = None
                     if day and hours:
-                        opening_hours.append({"day": day, "hours": hours})
+                        opening_hours.append({"dayOfWeek": day, "hours": hours})
             except Exception as e:
                 print(store_name + " 영업시간 에러 발생 : " + str(e))
             
@@ -198,7 +165,7 @@ def extract_restaurant_info(driver, store_elements):
                     "name": name,
                     "introduce": introduce,
                     "price": price,
-                    "img": img_src
+                    "imgUrl": img_src
                 })
 
             restaurant_info.append({
@@ -225,14 +192,14 @@ def extract_restaurant_info(driver, store_elements):
     return restaurant_info
     
 # 식당 이름 모으기
-restaurants = scroll_and_collect_restaurants(driver, scrollable_div, scroll_pause_time=1.5, max_scroll=1)
-restaurants_info = extract_restaurant_info(driver, restaurants)
+restaurants = crawling_restaurants(driver)
+#restaurants_info = extract_restaurant_info(driver, restaurants)
 
 end = datetime.now()
 
 print("[크롤링 결과]")
 print(f"\n 최종 수집 식당 수: {len(restaurants)}개")
-print(json.dumps(restaurants_info, ensure_ascii=False, indent=2))
+#print(json.dumps(restaurants_info, ensure_ascii=False, indent=2))
 print("소요 시간 : ", (end - now).total_seconds())
 
 driver.quit()
