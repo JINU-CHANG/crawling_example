@@ -1,11 +1,11 @@
 import json
 from datetime import datetime
-from crawling_restaurants import crawling_restaurants, crawling_restaurant_info
-from driver import get_driver, go_to_search_page
+from crawling_restaurants import crawling_restaurants
+from crawling_restaurnats_detail import crawling_restaurant_info
+from driver import get_driver
 
 driver = get_driver()
-go_to_search_page(driver, "https://map.naver.com/p/search/충무로%20음식점?c=15.00,0,0,0,dh") 
-restaurants = crawling_restaurants(driver)
+restaurants = crawling_restaurants(driver, "https://map.naver.com/p/search/충무로%20음식점?c=15.00,0,0,0,dh")
 restaurants_info = crawling_restaurant_info(driver, restaurants)
 
 print("[크롤링 결과]")
