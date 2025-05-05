@@ -1,8 +1,11 @@
 import json
 import os
+from datetime import datetime
 from crawling_restaurants import crawling_restaurants
 from crawling_restaurnats_detail import crawling_restaurant_info
 from driver import get_driver
+
+start_time = datetime.now()
 
 save_dir = "/home/ubuntu/crawling"
 filename = "restaurants.json"
@@ -21,4 +24,7 @@ driver.quit()
 with open(file_path, "w", encoding="utf-8") as f:
     f.write(restaurants_json)
 
+end_time = datetime.now()
+elapsed = end_time - start_time
 print(f"저장완료 : {file_path}")
+print(f"총 소요 시간: {elapsed.seconds}초 ({elapsed})")
