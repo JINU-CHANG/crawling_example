@@ -7,7 +7,7 @@ from driver import get_driver
 
 start_time = datetime.now()
 
-save_dir = "/home/ubuntu/crawling"
+save_dir = "/User/jinwoo/Desktop"
 filename = "restaurants.json"
 file_path = os.path.join(save_dir, filename)
 
