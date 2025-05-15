@@ -1,6 +1,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+import traceback
 import time
 import re
 
@@ -19,7 +20,6 @@ def crawling_restaurant_info(driver, restaurant_elements):
                 continue
 
             driver.execute_script("arguments[0].click();", restaurant)
-            time.sleep(1)
 
             driver.switch_to.default_content()
             WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.XPATH, '//*[@id="entryIframe"]')))
@@ -46,7 +46,8 @@ def crawling_restaurant_info(driver, restaurant_elements):
                 "address" : address,
                 "images" : images,
                 "openingHours": opening_hours,
-                "menu" : menu
+                "menus" : menu,
+                "menu_average" : int(calculate_menu_average(menu))
             })
 
             driver.switch_to.default_content()
@@ -77,8 +78,16 @@ def crawling_img(driver):
         print("가게 이미지 에러 발생 : " + str(e))
     return images
 
+def clean_time_string(t: str) -> str:
+    t = t.strip().replace(",", "")
+    return "00:00" if t == "24:00" else t
+
 def crawling_openingHours(driver):
     try:
+        if driver.find_elements(By.CSS_SELECTOR, ".O8qbU.J1zN9 span.LDgIH"):
+            print("영업시간 없어서 넘아가요~")
+            return []
+        
         button_element = WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".gKP9i.RMgN0")))
         driver.execute_script("arguments[0].click();", button_element)
 
@@ -123,29 +132,44 @@ def parse_hours(hours):
 
         if "브레이크" in line:
             parts = line.split(' - ')
-            result["breakStartTime"] = parts[0]
-            result["breakEndTime"] = parts[1].split()[0]
+            result["breakStartTime"] = clean_time_string(parts[0])
+            result["breakEndTime"] = clean_time_string(parts[1].split()[0])
         elif "라스트오더" in line:
-            result["lastOrderTime"] = line.split()[0]
+            result["lastOrderTime"] = clean_time_string(line.split()[0])
         elif " - " in line:
             # 영업시간은 첫 번째 라인이라고 가정
             start, end = line.split(' - ')
-            result["startTime"] = start
-            result["endTime"] = end
+            result["startTime"] = clean_time_string(start)
+            result["endTime"] = clean_time_string(end)
 
     return result
 
+def calculate_menu_average(menus):
+    main_prices = [menu["price"] for menu in menus
+               if menu.get("isMain") and isinstance(menu.get("price"), int)]
+
+    if not main_prices:
+        main_prices = [menu["price"] for menu in menus
+                if isinstance(menu.get("price"), int)]
+    
+    return sum(main_prices) / len(main_prices)
+
 def crawling_menu(driver):
     try:
-        menu = []
+        menus = []
         a_elements = driver.find_elements(By.CSS_SELECTOR, ".flicking-camera a")
         menu_link = next((a for a in a_elements if "menu" in a.get_attribute("href")), None)
 
         if menu_link is None:
-            return menu
+            return menus
         
         driver.execute_script("arguments[0].click();", menu_link)
+        time.sleep(1)
 
+        if driver.find_elements(By.CSS_SELECTOR, ".smart_category.slick-slider.general_place"):
+            print("발견됨 !!")
+            return menus
+        
         driver.switch_to.default_content()
         WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.ID, "entryIframe")))
         driver.switch_to.frame(driver.find_element(By.ID, "entryIframe"))
@@ -170,6 +194,7 @@ def crawling_menu(driver):
 
             try:
                 price = m.find_element(By.CSS_SELECTOR, ".GXS1X em").text.strip()
+                price = int(price.replace(",", ""))
             except:
                 price = None
 
@@ -179,7 +204,7 @@ def crawling_menu(driver):
             except:
                 img_src = None
 
-            menu.append({
+            menus.append({
                 "isMain": is_main,
                 "name": name,
                 "introduce": introduce,
@@ -188,4 +213,5 @@ def crawling_menu(driver):
             })
     except Exception as e:
          print(" 메뉴 에러 발생 : " + str(e))
-    return menu
+         traceback.print_exc()
+    return menus
