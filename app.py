@@ -2,22 +2,19 @@ import json
 import os
 from datetime import datetime
 from crawling_restaurants import crawling_restaurants
-from driver import get_driver
 
 start_time = datetime.now()
 
 save_dir = "/Users/jinwoo/Desktop"
-filename = "restaurants.json"
+filename = "restaurants_page.json"
 file_path = os.path.join(save_dir, filename)
 
-driver = get_driver()
-restaurants_info = crawling_restaurants(driver, "https://map.naver.com/p/search/충무로%20음식점?c=15.00,0,0,0,dh")
+restaurants_info = crawling_restaurants("https://map.naver.com/p/search/충무로&음식점?c=15.00,0,0,0,dh")
 
 print("[크롤링 결과]")
 print(f"\n 최종 수집 식당 수: {len(restaurants_info)}개")
 
 restaurants_json = json.dumps(restaurants_info, ensure_ascii=False, indent=2)
-driver.quit()
 
 with open(file_path, "w", encoding="utf-8") as f:
     f.write(restaurants_json)

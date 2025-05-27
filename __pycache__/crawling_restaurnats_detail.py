@@ -1,4 +1,3 @@
-import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -9,7 +8,6 @@ def crawling_restaurant_info(driver, restaurant_elements):
     restaurant_info = []
     except_keywords = ["카페", "디저트", "베이커리"]
     print(f"[{len(restaurant_elements)}개의 가게 디테일 정보 크롤링 시작]")
-    
     for idx, restaurant in enumerate(restaurant_elements, start=0):
         try:
             store_name = restaurant.find_element(By.CSS_SELECTOR, ".TYaxT").text.strip()
