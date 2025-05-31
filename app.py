@@ -9,7 +9,10 @@ save_dir = "/Users/jinwoo/Desktop"
 filename = "restaurants_page.json"
 file_path = os.path.join(save_dir, filename)
 
-restaurants_info = crawling_restaurants("https://map.naver.com/p/search/충무로&음식점?c=15.00,0,0,0,dh")
+# 충무로 음식점 "https://map.naver.com/p/search/%EC%B6%A9%EB%AC%B4%EB%A1%9C%20%EC%9D%8C%EC%8B%9D%EC%A0%90?c=15.00,0,0,0,dh"
+# 동대입구 음식점 "https://map.naver.com/p/search/%EC%9D%8C%EC%8B%9D%EC%A0%90?c=14138202.1256454%2C4517460.9622469%2C16.34%2C0%2C0%2C0%2Cdh"
+# 충무로 확대 버전 "https://map.naver.com/p/search/%EC%9D%8C%EC%8B%9D%EC%A0%90?c=14137233.3095541%2C4517585.4963101%2C17.13%2C0%2C0%2C0%2Cdh"
+restaurants_info = crawling_restaurants("https://map.naver.com/p/search/%EC%9D%8C%EC%8B%9D%EC%A0%90?c=14138202.1256454%2C4517460.9622469%2C16.34%2C0%2C0%2C0%2Cdh")
 
 print("[크롤링 결과]")
 print(f"\n 최종 수집 식당 수: {len(restaurants_info)}개")
