@@ -16,10 +16,6 @@ def crawling_menu(driver):
     time.sleep(0.1)
     if driver.find_elements(By.CSS_SELECTOR, ".smart_category.slick-slider.general_place"):
         return menus
-    
-    driver.switch_to.default_content()
-    WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.ID, "entryIframe")))
-    driver.switch_to.frame(driver.find_element(By.ID, "entryIframe"))
 
     menu_elements = WebDriverWait(driver, 60).until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".place_section_content .E2jtL")))
 
