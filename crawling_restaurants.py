@@ -1,4 +1,4 @@
-from http_request_randomizer.requests.proxy.requestProxy import RequestProxy
+import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -18,34 +18,35 @@ def crawling_restaurants(url):
     restaurants_info = []
 
     driver = get_driver()
-    driver.get(url)
-    WebDriverWait(driver, 60).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "searchIframe")))
-    WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".place_on_pcmap #app-root .zRM9F")))
-    divs = driver.find_elements(By.XPATH, "//a[contains(@class, 'mBN2s')]")
         
-    for page in range(1):
+    for page in range(4):
+        driver.get(url)
+        WebDriverWait(driver, 60).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "searchIframe")))
+        WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".place_on_pcmap #app-root .zRM9F")))
+        
         print(f"{page + 1}페이지 [가게 크롤링 시작]")
+        divs = driver.find_elements(By.XPATH, "//a[contains(@class, 'mBN2s')]")
         driver.execute_script("arguments[0].click();", divs[page])
+
         scroll_container = WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".place_on_pcmap #app-root .Ryr1F")))
-        scroll(driver, scroll_container, 300)
+        time.sleep(5)
+        scroll(driver, scroll_container, 100)
+
         restaurant_elements = driver.find_elements(By.CSS_SELECTOR,".place_on_pcmap #app-root .XUrfU .place_bluelink.N_KDL")
         restaurants_info.extend(crawling_restaurant_info(driver, restaurant_elements))
+    driver.quit
     return restaurants_info
 
-def scroll(driver, scroll_container, px, timeout=5):
+def scroll(driver, scroll_container, px):
     print("[스크롤 시작]")
-    last_height = driver.execute_script("return arguments[0].scrollTop", scroll_container)
 
-    def scroll_condition(driver):
-        current_height = driver.execute_script("return arguments[0].scrollTop", scroll_container)
-        return current_height > last_height
+    last_height = 0
 
     while True:
         driver.execute_script("arguments[0].scrollTop += arguments[1]", scroll_container, px)
-        try:
-            WebDriverWait(driver, timeout).until(scroll_condition)
-        except:
-            break
-        last_height = driver.execute_script("return arguments[0].scrollTop", scroll_container)
+        current_height = driver.execute_script("return arguments[0].scrollTop", scroll_container)
+        print("current height > " , current_height)
+        if (current_height <= last_height): break
+        last_height = current_height
 
     print("[스크롤 완료]")
