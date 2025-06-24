@@ -55,7 +55,7 @@ def crawling_restaurant_info(driver, restaurant_elements):
             WebDriverWait(driver, 60).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "searchIframe")))
             del restaurant
             
-        except Exception as e:
+        except Exception :
             driver.switch_to.default_content()
             WebDriverWait(driver, 60).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "searchIframe")))
             continue
@@ -80,14 +80,10 @@ def crawling_img(driver):
         print("가게 이미지 에러 발생 : " + str(e))
     return images
 
-def clean_time_string(t: str) -> str:
-    t = t.strip().replace(",", "")
-    return "00:00" if t == "24:00" else t
-
 def crawling_openingHours(driver):
     try:
         if driver.find_elements(By.CSS_SELECTOR, ".O8qbU.J1zN9 span.LDgIH"):
-            print("영업시간 없어서 넘아가요~")
+            print("영업시간 없습니다")
             return []
         
         button_element = WebDriverWait(driver, 60).until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".gKP9i.RMgN0")))
@@ -139,12 +135,15 @@ def parse_hours(hours):
         elif "라스트오더" in line:
             result["lastOrderTime"] = clean_time_string(line.split()[0])
         elif " - " in line:
-            # 영업시간은 첫 번째 라인이라고 가정
             start, end = line.split(' - ')
             result["startTime"] = clean_time_string(start)
             result["endTime"] = clean_time_string(end)
 
     return result
+
+def clean_time_string(t: str) -> str:
+    t = t.strip().replace(",", "")
+    return "00:00" if t == "24:00" else t
 
 def calculate_menu_average(menus):
     main_prices = [menu["price"] for menu in menus
@@ -159,14 +158,14 @@ def calculate_menu_average(menus):
 def crawling_menu(driver):
     try:
         menus = []
-        a_elements = driver.find_elements(By.CSS_SELECTOR, ".flicking-camera a")
+        a_elements = driver.find_elements(By.CSS_SELECTOR, ".place_fixed_maintab a")
         menu_link = next((a for a in a_elements if "menu" in a.get_attribute("href")), None)
 
         if menu_link is None:
             return menus
         
         driver.execute_script("arguments[0].click();", menu_link)
-
+        time.sleep(0.1)
         if driver.find_elements(By.CSS_SELECTOR, ".smart_category.slick-slider.general_place"):
             print("발견됨 !!")
             return menus
@@ -212,6 +211,7 @@ def crawling_menu(driver):
                 "price": price,
                 "imgUrl": img_src
             })
+            
     except Exception as e:
          print(" 메뉴 에러 발생 : " + str(e))
          traceback.print_exc()
