@@ -10,8 +10,8 @@ from selenium.webdriver.chrome.options import Options
 
 def get_driver():
     options = Options()
-    #options.add_argument("--headless=new")
-    #options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
+    options.add_argument("--headless=new")
+    options.add_argument("user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")
     return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 def crawling_restaurants(url):
@@ -19,34 +19,35 @@ def crawling_restaurants(url):
 
     driver = get_driver()
         
-    for page in range(4):
+    for page in range(5):
         driver.get(url)
         WebDriverWait(driver, 60).until(EC.frame_to_be_available_and_switch_to_it((By.ID, "searchIframe")))
         WebDriverWait(driver, 60).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".place_on_pcmap #app-root .zRM9F")))
-        
+    
         print(f"{page + 1}페이지 [가게 크롤링 시작]")
-        divs = driver.find_elements(By.XPATH, "//a[contains(@class, 'mBN2s')]")
-        driver.execute_script("arguments[0].click();", divs[page])
-
-        scroll_container = WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".place_on_pcmap #app-root .Ryr1F")))
-        time.sleep(5)
-        scroll(driver, scroll_container, 100)
+        click_div(driver, page)
+        scroll(driver, 100)
 
         restaurant_elements = driver.find_elements(By.CSS_SELECTOR,".place_on_pcmap #app-root .XUrfU .place_bluelink.N_KDL")
         restaurants_info.extend(crawling_restaurant_info(driver, restaurant_elements))
     driver.quit
     return restaurants_info
 
-def scroll(driver, scroll_container, px):
+def click_div(driver, page):
+    divs = driver.find_elements(By.XPATH, "//a[contains(@class, 'mBN2s')]")
+    driver.execute_script("arguments[0].click();", divs[page])
+    
+def scroll(driver, px):
     print("[스크롤 시작]")
+    
+    scroll_container = WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.CSS_SELECTOR, ".place_on_pcmap #app-root .Ryr1F")))
+    time.sleep(3)
 
     last_height = 0
-
     while True:
         driver.execute_script("arguments[0].scrollTop += arguments[1]", scroll_container, px)
         current_height = driver.execute_script("return arguments[0].scrollTop", scroll_container)
-        print("current height > " , current_height)
+
         if (current_height <= last_height): break
         last_height = current_height
-
-    print("[스크롤 완료]")
+        
